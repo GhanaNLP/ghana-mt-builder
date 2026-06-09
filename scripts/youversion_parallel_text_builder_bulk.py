@@ -536,13 +536,98 @@ def load_versions_csv(csv_path: str) -> list:
                 continue
             # Skip rows explicitly marked not viable by the scanner
             if row.get("viable", "").strip().lower() == "false":
-                print(f"  ⏭️  Skipping {row['lang_name']} ({row['lang_code']}) — marked not viable")
                 continue
             abbr = row.get("abbr", "").strip() or None
             entries.append((int(vid), row["lang_code"].strip(),
                             row["lang_name"].strip(), abbr))
-    print(f"📋 Loaded {len(entries)} viable version(s) from {csv_path}")
     return entries
+
+
+# ─────────────────────────────────────────────
+# INTERACTIVE LANGUAGE SELECTION
+# ─────────────────────────────────────────────
+
+def prompt_language_selection(entries: list) -> list:
+    """
+    Display a numbered list of available languages and prompt the user
+    to select one or more. Returns the chosen subset of entries.
+    Supports single picks, comma-separated picks, and ranges (e.g. 1-3).
+    """
+    print("\n" + "=" * 60)
+    print("  Available Languages")
+    print("=" * 60)
+    print(f"  {'#':<5} {'Language':<30} {'Code':<10} {'Version ID'}")
+    print(f"  {'-'*5} {'-'*30} {'-'*10} {'-'*10}")
+    for i, (version_num, lang_code, lang_name, abbr) in enumerate(entries, start=1):
+        abbr_str = f" ({abbr})" if abbr else ""
+        print(f"  {i:<5} {lang_name + abbr_str:<30} {lang_code:<10} {version_num}")
+    print("=" * 60)
+    print("\n  Enter number(s) to select — examples:")
+    print("    3          → pick language #3")
+    print("    1,4,7      → pick languages #1, #4, and #7")
+    print("    2-5        → pick languages #2 through #5")
+    print("    1,3-5,8    → mixed selection")
+    print()
+
+    while True:
+        raw = input("  Your selection: ").strip()
+        if not raw:
+            print("  ⚠️  No input provided. Please enter at least one number.\n")
+            continue
+
+        selected_indices = set()
+        valid = True
+        parts = [p.strip() for p in raw.split(",")]
+        for part in parts:
+            if not part:
+                continue
+            if "-" in part:
+                # Range like "2-5"
+                bounds = part.split("-", 1)
+                try:
+                    lo, hi = int(bounds[0].strip()), int(bounds[1].strip())
+                    if lo < 1 or hi > len(entries) or lo > hi:
+                        print(f"  ⚠️  Range '{part}' is out of bounds "
+                              f"(valid: 1–{len(entries)}).\n")
+                        valid = False
+                        break
+                    selected_indices.update(range(lo, hi + 1))
+                except ValueError:
+                    print(f"  ⚠️  Could not parse range '{part}'.\n")
+                    valid = False
+                    break
+            else:
+                try:
+                    n = int(part)
+                    if n < 1 or n > len(entries):
+                        print(f"  ⚠️  Number {n} is out of range "
+                              f"(valid: 1–{len(entries)}).\n")
+                        valid = False
+                        break
+                    selected_indices.add(n)
+                except ValueError:
+                    print(f"  ⚠️  '{part}' is not a valid number.\n")
+                    valid = False
+                    break
+
+        if not valid or not selected_indices:
+            if valid:
+                print("  ⚠️  No valid selections found. Please try again.\n")
+            continue
+
+        # Show confirmation summary
+        chosen = [entries[i - 1] for i in sorted(selected_indices)]
+        print("\n  You selected:")
+        for version_num, lang_code, lang_name, abbr in chosen:
+            abbr_str = f" ({abbr})" if abbr else ""
+            print(f"    • {lang_name}{abbr_str}  [{lang_code}]  version {version_num}")
+        print()
+
+        confirm = input("  Confirm? [y/n]: ").strip().lower()
+        if confirm in ("y", "yes"):
+            return chosen
+        else:
+            print("\n  Selection cancelled — please choose again.\n")
 
 
 # ─────────────────────────────────────────────
@@ -550,12 +635,21 @@ def load_versions_csv(csv_path: str) -> list:
 # ─────────────────────────────────────────────
 
 def main():
-    entries = load_versions_csv(VERSIONS_CSV)
-    if not entries:
-        print("❌ No versions found in CSV. Exiting.")
+    # ── Load and display available languages ─────────────────────────────────
+    all_entries = load_versions_csv(VERSIONS_CSV)
+    if not all_entries:
+        print("❌ No viable versions found in CSV. Exiting.")
         return
 
-    print(f"🧰 Spinning up {NUM_WORKERS} browsers...")
+    print(f"📋 Loaded {len(all_entries)} viable language version(s) from {VERSIONS_CSV}")
+
+    # ── Interactive selection ─────────────────────────────────────────────────
+    selected_entries = prompt_language_selection(all_entries)
+    if not selected_entries:
+        print("❌ No languages selected. Exiting.")
+        return
+
+    print(f"\n🧰 Spinning up {NUM_WORKERS} browsers...")
     driver_queue = build_driver_pool(NUM_WORKERS)
 
     progress         = load_global_progress()
@@ -563,7 +657,7 @@ def main():
     grand_total      = 0
 
     try:
-        for version_num, lang_code, lang_name, abbr in entries:
+        for version_num, lang_code, lang_name, abbr in selected_entries:
             stats = build_dataset_for_bible(
                 version_num, lang_code, lang_name, abbr,
                 driver_queue, progress, testament_status,
@@ -577,7 +671,7 @@ def main():
             except Exception:
                 pass
 
-    print(f"\n🎉 All done!  Total parallel pairs across all versions: {grand_total}")
+    print(f"\n🎉 All done!  Total parallel pairs across all selected versions: {grand_total}")
     print(f"   Output root      : {os.path.abspath(OUTPUT_ROOT)}")
     print(f"   English cache    : {os.path.abspath(ENGLISH_CACHE_CSV)}")
     print(f"   Progress file    : {os.path.abspath(PROGRESS_FILE)}")

@@ -51,7 +51,7 @@ The table below lists all languages confirmed to have content on YouVersion and 
 | Bassar Ntcham | bud | 2235 | OT + NT | [Kenneth Dotse](https://www.linkedin.com/in/kenneth-kwame-dotse/) | Assigned |
 | Bimoba | bim | 1748 | OT + NT | [Mich-Seth Owusu](https://linkedin.com/in/mich-seth-owusu) | ✅ Done |
 | Buli | bwu | 2176 | OT + NT | [Dyllis	Ofori-Attah](https://www.linkedin.com/in/dyllis-oforiattah/) | Assigned |
-| Dagaare | dga | 4573 | OT + NT | [Bernard Adjei](https://www.linkedin.com/in/bernardmarfoadjei/) | Not started |
+| Dagaare | dga | 4573 | OT + NT | [Bernard Adjei](https://www.linkedin.com/in/bernardmarfoadjei/) | Assigned |
 | Dagbani | dag | 2263, 2264 | OT + NT | — | Not started |
 | Dangme | ada | 2265 | OT + NT | — | Not started |
 | Deg | mzw | 2012 | OT + NT | — | Not started |

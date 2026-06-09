@@ -109,7 +109,7 @@ Any language with a YouVersion Bible translation can be added by including its v
 
 ## License
 
-Dataset content is sourced from YouVersion. Please review [YouVersion's terms of service](https://www.youversion.com/terms/) before publishing or distributing scraped data. Code in this repository is released under the MIT License.
+Dataset content is sourced from YouVersion. Please review YouVersion's terms of service before publishing or distributing scraped data. Code in this repository is released under the MIT License.
 
 ---
 
